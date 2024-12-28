@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
-// import userRouter from "./routes/userRouter.js";
+import userRouter from "./routes/userRouter.js";
 // import productRouter from "./routes/productRouter.js";
 // import jwt from "jsonwebtoken";
 
@@ -20,6 +20,8 @@ mongoose.connect(mongoUrl, {
 }).catch((err) => {
   console.log("Error connecting to MongoDB:", err);
 });
+
+app.use("/api/users", userRouter);
 
 
 app.listen(3000, () => {
