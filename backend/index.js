@@ -38,7 +38,7 @@ mongoose.connect(mongoUrl, {
 
 app.use("/api/users", userRouter);
 app.use("/api/products", productRouter);
-app.use("api/reviews", reviewRouter);
+app.use("/api/reviews", reviewRouter);
 
 
 app.listen(3000, () => {
