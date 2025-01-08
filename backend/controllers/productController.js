@@ -1,6 +1,6 @@
 import Product from "../models/products.js";
 
-export function addProduct(req, res) {
+export async function addProduct(req, res) {
 
     console.log(req.user);
 
@@ -15,20 +15,19 @@ export function addProduct(req, res) {
 
     const data = req.body;
     const newProduct = new Product(data);
-    newProduct.save()
-    .then(() => {
+    try {
+        await newProduct.save();
         res.json({message:"Product added successfully"});
-    })
-    .catch((error) => {
+    } catch (error) {
         res.status(500).json({error:"Product addition failed"});
-    });
+    }
 }
 
-export function getProducts(req, res) {
-    Product.find()
-    .then((products) => {
+export async function getProducts(req, res) {
+    try {
+        const products = await Product.find();
         res.json(products);
-    })
-    .catch((error) => {
-        res.status(500).json({error:"Error fetching products"});    
-    })}
+    } catch (error) {
+        res.status(500).json({error:"Error fetching products"});
+    }
+}
