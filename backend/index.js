@@ -6,41 +6,67 @@ import productRouter from "./routes/productRouter.js";
 import reviewRouter from "./routes/reviewRouter.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import cors from "cors";
+
+// Load environment variables
 dotenv.config();
 
-const app = express();  
+// Initialize Express app
+const app = express();
 
+// Middleware
+app.use(cors());
 app.use(bodyParser.json());
+
+// JWT Middleware
 app.use((req, res, next) => {
-  let token = req.header("Authorization");
-  if (token != null) {
-    token = token.replace("Bearer ", "");
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-      if (!err) {
-        req.user = decoded;
+  const token = req.header("Authorization");
+  if (token) {
+    const cleanedToken = token.replace("Bearer ", "");
+    jwt.verify(cleanedToken, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        return res.status(401).json({ message: "Invalid or expired token" });
       }
+      req.user = decoded;
     });
   }
   next();
 });
 
-let mongoUrl = process.env.MONGO_URL;
-    
+// MongoDB Connection
+const mongoUrl = process.env.MONGO_URL;
 
-mongoose.connect(mongoUrl, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
-  console.log("Connected to MongoDB");
-}).catch((err) => {
-  console.log("Error connecting to MongoDB:", err);
-});
+if (!mongoUrl) {
+  console.error("MONGO_URL is not defined in the environment variables.");
+  process.exit(1);
+}
 
+mongoose
+  .connect(mongoUrl, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("Connected to MongoDB");
+  })
+  .catch((err) => {
+    console.error("Error connecting to MongoDB:", err.message);
+    process.exit(1);
+  });
+
+// Routes
 app.use("/api/users", userRouter);
 app.use("/api/products", productRouter);
 app.use("/api/reviews", reviewRouter);
 
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Something went wrong!" });
+});
 
-app.listen(3000, () => {
-  console.log("Server started on port 3000");
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server started on port ${PORT}`);
 });
