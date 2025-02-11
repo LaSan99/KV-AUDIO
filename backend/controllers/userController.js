@@ -49,7 +49,7 @@ export function loginUser(req, res) {
             expiresIn: "1h",
           }
         );
-        res.json({ message: "Login successful", token: token });
+        res.json({ message: "Login successful", token: token , user: user});
       } else {
         res.status(401).json({ error: "Login failed" });
       }
