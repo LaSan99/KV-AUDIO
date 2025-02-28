@@ -27,18 +27,19 @@ export function addReview(req, res) {
 }
 
 export async function getReviews(req, res) {
-    const user = req.user;
-
-    if(user == null || user.role != "admin"){
-        const reviews = await Review.find({isApproved: true});
-        res.json(reviews);
-        return;
-    }
-
+  const user = req.user;
+  try{
     if(user.role == "admin"){
-        const reviews = await Review.find();
-        res.json(reviews);
+      const reviews = await Review.find();
+      res.json(reviews);
+    }else{
+      const reviews = await Review.find({isApproved:true});
+      res.json(reviews);
     }
+  }catch(error){
+    res.status(500).json({error:"Failed to get reviews"});
+  }
+ 
 }
 
 export function deleteReview(req, res) {
