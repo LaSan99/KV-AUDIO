@@ -7,6 +7,10 @@ const inquirySchema = new mongoose.Schema({
     required : true,
     unique : true
   },
+  name: {
+    type: String,
+    required: false // Optional for backward compatibility with existing inquiries
+  },
   email : {
     type : String,
     required : true

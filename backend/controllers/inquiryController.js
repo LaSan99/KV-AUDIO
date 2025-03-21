@@ -161,3 +161,42 @@ export async function updateInquiry(req,res){
     })
   }
 }
+
+export async function addPublicInquiry(req, res) {
+  try {
+    const { name, email, message } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !message) {
+      return res.status(400).json({
+        message: "Please provide name, email and message"
+      });
+    }
+
+    // Generate new ID
+    let id = 0;
+    const inquiries = await Inquiry.find().sort({id:-1}).limit(1);
+    id = inquiries.length === 0 ? 1 : inquiries[0].id + 1;
+
+    const newInquiry = new Inquiry({
+      id,
+      email,
+      message,
+      phone: "Not provided", // Since phone is required in model but optional in contact form
+      name // Additional field for public inquiries
+    });
+
+    await newInquiry.save();
+
+    res.status(201).json({
+      message: "Thank you for your inquiry. We will get back to you soon.",
+      id: newInquiry.id
+    });
+
+  } catch (error) {
+    console.error("Error in addPublicInquiry:", error);
+    res.status(500).json({
+      message: "Failed to submit inquiry. Please try again later."
+    });
+  }
+}
