@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import axios from "axios";
 import nodemailer from "nodemailer";
 import OTP from "../models/otp.js";
+import Order from "../models/order.js";
 dotenv.config();
 
 const transport = nodemailer.createTransport({
@@ -284,4 +285,126 @@ export async function verifyOTP(req,res){
     res.status(200).json({message : "Email verified successfully"})
   }
   
+}
+
+// Get user profile with bookings
+export async function getUserProfile(req, res) {
+  try {
+    if (!req.user) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    // Get user details
+    const user = await User.findOne({ email: req.user.email })
+      .select('-password'); // Exclude password from response
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Get user's orders/bookings
+    const orders = await Order.find({ email: req.user.email })
+      .sort({ orderDate: -1 }); // Most recent first
+
+    res.json({
+      profile: user,
+      bookings: orders
+    });
+  } catch (error) {
+    console.error("Error in getUserProfile:", error);
+    res.status(500).json({ error: "Failed to get user profile" });
+  }
+}
+
+// Update user profile
+export async function updateUserProfile(req, res) {
+  try {
+    if (!req.user) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const allowedUpdates = [
+      'firstName',
+      'lastName',
+      'address',
+      'phone',
+      'profilePicture'
+    ];
+
+    const updates = {};
+    for (const field of allowedUpdates) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    const user = await User.findOneAndUpdate(
+      { email: req.user.email },
+      { $set: updates },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Update JWT with new user information
+    const token = jwt.sign(
+      {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        profilePicture: user.profilePicture,
+        phone: user.phone,
+        emailVerified: user.emailVerified
+      },
+      process.env.JWT_SECRET
+    );
+
+    res.json({
+      message: "Profile updated successfully",
+      user,
+      token
+    });
+  } catch (error) {
+    console.error("Error in updateUserProfile:", error);
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+}
+
+// Get user's booking history
+export async function getUserBookings(req, res) {
+  try {
+    if (!req.user) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const { status, startDate, endDate } = req.query;
+    let query = { email: req.user.email };
+
+    // Add status filter if provided
+    if (status) {
+      query.status = status;
+    }
+
+    // Add date range filter if provided
+    if (startDate || endDate) {
+      query.orderDate = {};
+      if (startDate) {
+        query.orderDate.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.orderDate.$lte = new Date(endDate);
+      }
+    }
+
+    const bookings = await Order.find(query)
+      .sort({ orderDate: -1 });
+
+    res.json(bookings);
+  } catch (error) {
+    console.error("Error in getUserBookings:", error);
+    res.status(500).json({ error: "Failed to get bookings" });
+  }
 }
