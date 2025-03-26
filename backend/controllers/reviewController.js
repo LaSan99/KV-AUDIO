@@ -44,18 +44,56 @@ export function addReview(req, res) {
     });
 }
 
-export async function getReviews(req, res) {
-  const user = req.user;
+// Get approved reviews for public display
+export async function getApprovedReviews(req, res) {
   try {
-    if (user.role == "admin") {
-      const reviews = await Review.find();
-      res.json(reviews);
+    const reviews = await Review.find({ isApproved: true })
+      .sort({ date: -1 }) // Sort by date, newest first
+      .select('name comment rating profilePicture date'); // Only select needed fields
+    
+    res.json({
+      success: true,
+      reviews: reviews
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch reviews",
+      error: error.message 
+    });
+  }
+}
+
+// Get all reviews (for admin)
+export async function getReviews(req, res) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: "Authentication required" 
+      });
+    }
+
+    if (req.user.role === "admin") {
+      const reviews = await Review.find().sort({ date: -1 });
+      res.json({
+        success: true,
+        reviews: reviews
+      });
     } else {
-      const reviews = await Review.find({ isApproved: true });
-      res.json(reviews);
+      // For non-admin users, only return their own reviews
+      const reviews = await Review.find({ email: req.user.email }).sort({ date: -1 });
+      res.json({
+        success: true,
+        reviews: reviews
+      });
     }
   } catch (error) {
-    res.status(500).json({ error: "Failed to get reviews" });
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to get reviews",
+      error: error.message 
+    });
   }
 }
 
